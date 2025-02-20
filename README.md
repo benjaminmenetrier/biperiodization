@@ -1,2 +1,2 @@
-# biperiodization
+# Biperiodization
 Biperiodization: the EMF method

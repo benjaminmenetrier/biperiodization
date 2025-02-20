@@ -1,0 +1,189 @@
+\documentclass[12pt]{scrartcl}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsbsy}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{bm}
+\usepackage{verbatim}
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{url}
+\usepackage{fancybox}
+\usepackage[stable]{footmisc}
+\usepackage[format=plain,labelfont=bf]{caption}
+\usepackage{fancyhdr}
+\usepackage{natbib}
+\usepackage{calc}
+\usepackage{textcomp}
+\usepackage[pdftex,pdfborder={0 0 0}]{hyperref}
+\usepackage{pdfpages}
+\usepackage{tikz}
+\usetikzlibrary{shapes,backgrounds,fit,positioning,arrows,positioning,decorations.pathmorphing,decorations.pathreplacing,backgrounds}
+\usepackage{accents}
+
+\renewcommand*{\familydefault}{\sfdefault}
+
+% Margins
+\addtolength{\textheight}{1.0cm}
+\addtolength{\oddsidemargin}{-0.5cm}
+\addtolength{\evensidemargin}{-0.5cm}
+\addtolength{\textwidth}{1.0cm}
+\parindent=0em
+
+% Appropriate font for \mathcal{}
+\DeclareSymbolFont{cmmathcal}{OMS}{cmsy}{m}{n}
+\DeclareSymbolFontAlphabet{\mathcal}{cmmathcal}
+
+% Set subscript and superscripts positions
+\everymath{
+\fontdimen13\textfont2=5pt
+\fontdimen14\textfont2=5pt
+\fontdimen15\textfont2=5pt
+\fontdimen16\textfont2=5pt
+\fontdimen17\textfont2=5pt
+}
+
+% Bibliography style
+\setlength{\bibsep}{1pt}
+
+% Part
+\renewcommand\partheadstartvskip{\clearpage\null\vfil}
+\renewcommand\partheadmidvskip{\par\nobreak\vskip 20pt\thispagestyle{empty}}
+\renewcommand\partheadendvskip{\vfil\clearpage}
+\renewcommand\raggedpart{\centering}
+
+\begin{document}
+\title{Biperiodization: the EMF method}
+\author{Benjamin Ménétrier}
+\date{Last update: \today}
+
+\thispagestyle{empty}
+
+\maketitle
+
+\section{Problem definition}
+
+The biperiodization process is needed to make a non-periodic 2D field periodic, in order to later apply discrete Fourier transforms. For this, an extension zone is defined on two sides of the original domain (called the ``physical zone''), which has to be filled with adequate values to make the whole field periodic.\\
+$  $\\
+The work of \cite{blazica_2015} reviews existing methods, and can be quickly summarized as follows:
+\begin{itemize}
+\item The extension methods of HIRLAM and ALADIN models are based on spline (ALADIN) or trigonometric (HIRLAM) functions, which are applied in both directions successively. They lead to wild overshoots in the extension zone and have a strong impact on the spectra.
+\item The detrending approach requires a modification of the physical values.
+\item The Boyd method is very good but requires data from outside the physical zone (e.g. from a large scale coupler).
+\item The discrete cosine transform method produces accurate spectra but increases the total domain size by a factor 4.
+\end{itemize}
+
+\section{The EMF method}
+
+The goal of this note is to design a method that:
+\begin{itemize}
+\item produces smooth extension values without overshoots,
+\item does not require a modification of the physical values,
+\item can be computed from the physical values only,
+\item does not increase the total domain size too much.
+\end{itemize}
+
+This new (?) method is called ``EMF'' for ``Extension, Mixing, Folding''.\\
+$  $\\
+We start with an initial random smooth field defined in the physical zone (P). The goal is to define values in the extension zone (E), and to make this process easier we also fill the opposite extension zone (E').
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{base_init.pdf}
+\end{center}
+
+\subsection{Extension}
+
+As in the discrete cosine transform method, it is possible to extend the initial field using a symmetry operation with respect to the (P) boundary:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{base_extended_sym.pdf}
+\end{center}
+
+The values in (E) and (E') have the same amplitude as in (P), which is good, but the field derivative is discontinuous at the (P) boundary, which is not ideal.\\
+$  $\\
+Another possible way to extend the field is to use an anti-symmetric operation with respect to the (P) boundary:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{base_extended_antisym.pdf}
+\end{center}
+
+In this case, the first two derivatives of the field are continuous at the (P) boundary, which is good, but the field shows significant overshoots in (E) and (E') further away from this boundary, which is not desired.
+
+\subsection{Mixing}
+To attenuate the respective drawbacks of the two previous extension methods, a simple linear combination might be sufficient. The weights of this combination should be:
+\begin{itemize}
+\item higher on the first field (symmetric) away from the boundary, to avoid overshoots.
+\item higher on the second field anti-symmetric) at the boundary, to keep continuous derivatives,
+\end{itemize}
+
+A mixing mask using \cite{boyd_2005} formula for the ramp can be defined:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{base_mixing.pdf}
+\end{center}
+
+This mask is applied to the anti-symmetric extension, and its complementary to the symmetric extension. The mixed fields resulting from this linear combination is:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{base_extended_mixed.pdf}
+\end{center}
+
+The continuity of the derivatives is preserved at the (P) boundary, while overshoots are kept at a managable amplitude.
+
+\subsection{Folding}
+In the final step, we apply the \cite{boyd_2005} folding method on this extended field, following two steps:
+\begin{itemize}
+\item applying the Boyd's mask on the extended field,
+\item folding the domain to make the (P+E) zone biperiodic.
+\end{itemize}
+
+The Boyd's mask look like:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{base_boyd.pdf}
+\end{center}
+
+and the final result is:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{base_folded.pdf}
+\end{center}
+
+We can check that the (P+E) zone is now biperiodic, with continuous derivatives at the (P) boundary and limited overshoots in (E). The field in (P+E) has been built from the values of (P) only, without modifying them.
+
+\section{Impact of the extension zone size}
+With an extension zone twice narrower, the EMF methods works fine and the final result is:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{small_folded.pdf}
+\end{center}
+
+With and extension zone twice broader, larger overshoots are expected, produced by the anti-symmetric extension:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{large_folded.pdf}
+\end{center}
+
+However, it is easy to adjust the mixing mask with a transition that is not in the middle of the (E) zone but closer to the (P) boundary instead:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{large_adjusted_mixing.pdf}
+\end{center}
+
+leading to final result with limited overshoots:
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{large_adjusted_folded.pdf}
+\end{center}
+
+\bibliographystyle{mybib-en}
+\bibliography{biperiodization}
+\end{document}
