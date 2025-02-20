@@ -120,8 +120,8 @@ In this case, the first two derivatives of the field are continuous at the (P) b
 \subsection{Mixing}
 To attenuate the respective drawbacks of the two previous extension methods, a simple linear combination might be sufficient. The weights of this combination should be:
 \begin{itemize}
-\item higher on the first field (symmetric) away from the boundary, to avoid overshoots.
-\item higher on the second field anti-symmetric) at the boundary, to keep continuous derivatives,
+\item higher on the first field (symmetric) away from the boundary, to avoid overshoots,
+\item higher on the second field anti-symmetric) at the boundary, to keep continuous derivatives.
 \end{itemize}
 
 A mixing mask using \cite{boyd_2005} formula for the ramp can be defined:
@@ -130,7 +130,7 @@ A mixing mask using \cite{boyd_2005} formula for the ramp can be defined:
 \includegraphics[width=0.7\textwidth]{base_mixing.pdf}
 \end{center}
 
-This mask is applied to the anti-symmetric extension, and its complementary to the symmetric extension. The mixed fields resulting from this linear combination is:
+This mask is applied to the anti-symmetric extension, and its complementary to the symmetric extension. The mixed field resulting from this linear combination is:
 
 \begin{center}
 \includegraphics[width=0.7\textwidth]{base_extended_mixed.pdf}
@@ -160,25 +160,25 @@ and the final result is:
 We can check that the (P+E) zone is now biperiodic, with continuous derivatives at the (P) boundary and limited overshoots in (E). The field in (P+E) has been built from the values of (P) only, without modifying them.
 
 \section{Impact of the extension zone size}
-With an extension zone twice narrower, the EMF methods works fine and the final result is:
+With an extension zone twice narrower, the EMF method works fine and the final result is:
 
 \begin{center}
 \includegraphics[width=0.7\textwidth]{small_folded.pdf}
 \end{center}
 
-With and extension zone twice broader, larger overshoots are expected, produced by the anti-symmetric extension:
+With and extension zone twice broader, larger overshoots produced by the anti-symmetric extension are expected:
 
 \begin{center}
 \includegraphics[width=0.7\textwidth]{large_folded.pdf}
 \end{center}
 
-However, it is easy to adjust the mixing mask with a transition that is not in the middle of the (E) zone but closer to the (P) boundary instead:
+However, it is easy to adjust the mixing mask with a transition that is not in the middle of (E) and (E') but closer to the (P) boundary instead:
 
 \begin{center}
 \includegraphics[width=0.7\textwidth]{large_adjusted_mixing.pdf}
 \end{center}
 
-leading to final result with limited overshoots:
+leading to a final result with limited overshoots:
 
 \begin{center}
 \includegraphics[width=0.7\textwidth]{large_adjusted_folded.pdf}
