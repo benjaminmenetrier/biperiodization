@@ -7,18 +7,20 @@ import os
 from scipy.ndimage import gaussian_filter
 
 # Case name
-case = "large_adjusted"
+case = "base"
 
 # C+I dimensions
 nx = 50
 ny = 70
 
 # E zone dimensions
-nxExt = 20
-nyExt = 28
+nxExt = 10
+nyExt = 14
+
+# Mixing size (have an impact if lower than nxExt or nyExt)
+nmix = 100
 
 # Mixing scale
-nmix = 10
 Lmix = 1.0
 
 # Boyd scale
