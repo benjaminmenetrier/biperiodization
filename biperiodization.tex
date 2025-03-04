@@ -91,7 +91,7 @@ The goal of this note is to design a method that:
 \item does not increase the total domain size too much.
 \end{itemize}
 
-This new (?) method is called ``EMF'' for ``Extension, Mixing, Folding''.\\
+This new method is called ``EMF'' for ``Extension, Mixing, Folding''.\\
 $  $\\
 We start with an initial random smooth field defined in the physical zone (P). The goal is to define values in the extension zone (E), and to make this process easier we also fill the opposite extension zone (E').
 
@@ -124,7 +124,16 @@ To attenuate the respective drawbacks of the two previous extension methods, a s
 \item higher on the second field anti-symmetric) at the boundary, to keep continuous derivatives.
 \end{itemize}
 
-A mixing mask using \cite{boyd_2005} formula for the ramp can be defined:
+The \cite{boyd_2005} formula for a ramp going from 1 to 0 for an argument going from 0 to 1 can be expressed as:
+\begin{align}
+\mathcal{B}(x) = \frac{1}{2} \left(1+ \text{erf}\left(L\frac{1-2x}{\sqrt{4x(1-x)}}\right)\right)
+\end{align}
+For values of $L$ between 1 and 3, the ramp looks like:
+\begin{center}
+\includegraphics[width=0.4\textwidth]{boyd.pdf}
+\end{center}
+
+The mixing mask with $L_\text{mix} = 1$ is:
 
 \begin{center}
 \includegraphics[width=0.7\textwidth]{base_mixing.pdf}
@@ -145,7 +154,7 @@ In the final step, we apply the \cite{boyd_2005} folding method on this extended
 \item folding the domain to make the (P+E) zone biperiodic.
 \end{itemize}
 
-The Boyd's mask look like:
+The folding mask with $L_\text{fold} = 2$ looks like:
 
 \begin{center}
 \includegraphics[width=0.7\textwidth]{base_boyd.pdf}
@@ -183,6 +192,45 @@ leading to a final result with limited overshoots:
 \begin{center}
 \includegraphics[width=0.9\textwidth]{broad_adjusted_folded.pdf}
 \end{center}
+
+\section{Implementation}
+
+We denote $x$ the input values (from the (P) zone) and $y$ the intermediate and output values (in the (E) zone). The output value
+\begin{align}
+y = \sum_{i=1}^n y_i
+\end{align}
+is the sum of several components $y_1, ..., y_n$ because of the folding procedure, with $n$ depending on the point location in (E):
+\begin{itemize}
+\item right-top corner: $n=4$
+\item right side: $n=2$
+\item top side: $n=2$
+\end{itemize}
+
+For each component $y_i$, we can define two input points:
+\begin{itemize}
+\item $x^\text{bnd}_i$: closest points on the (P) zone boundary,
+\item $x^\text{sym}_i$: symmetric point with respect to $x^\text{bnd}_i$.
+\end{itemize}
+
+The symmetric extension and anti-symmetric values are respectively given by:
+\begin{align}
+y^\text{sym}_i & = x^\text{sym}_i \\
+y^\text{anti-sym}_i & = 2 x^\text{bnd}_i - x^\text{sym}_i
+\end{align}
+
+For each component, we denote $c^\text{mix}_i$ the local mixing mask and $c^\text{fold}_i$ the local folding mask. The final component value is given by:
+\begin{align}
+y_i = \left(c^\text{mix}_i y^\text{sym}_i + \left(1-c^\text{mix}_i\right) y^\text{anti-sym}_i \right) c^\text{fold}_i
+\end{align}
+which can be expressed as a linear combination of input values:
+\begin{align}
+y_i = \alpha^\text{bnd}_i x^\text{bnd}_i + \alpha^\text{sym}_i x^\text{sym}_i
+\end{align}
+with the linear coefficients:
+\begin{align}
+\alpha^\text{bnd}_i & = 2 c^\text{mix}_i c^\text{fold}_i \\
+\alpha^\text{sym}_i & = \left(1 - 2 c^\text{mix}_i\right) c^\text{fold}_i
+\end{align}
 
 \bibliographystyle{mybib-en}
 \bibliography{biperiodization}
