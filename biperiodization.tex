@@ -28,6 +28,7 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes,backgrounds,fit,positioning,arrows,positioning,decorations.pathmorphing,decorations.pathreplacing,backgrounds}
 \usepackage{accents}
+\usepackage{placeins}
 
 \renewcommand*{\familydefault}{\sfdefault}
 
@@ -61,7 +62,7 @@
 \renewcommand\raggedpart{\centering}
 
 \begin{document}
-\title{Biperiodization: the EMF method}
+\title{Biperiodization: the SEAM method}
 \author{Benjamin Ménétrier}
 \date{Last update: \today}
 
@@ -69,9 +70,13 @@
 
 \maketitle
 
+\tableofcontents
+
 \section{Problem definition}
 
-The biperiodization process is needed to make a non-periodic 2D field periodic, in order to later apply discrete Fourier transforms. For this, an extension zone is defined on two sides of the original domain (called the ``physical zone''), which has to be filled with adequate values to make the whole field periodic.\\
+\subsection{In the NWP world}
+
+In Numerical Weather Prediction models, the biperiodization process is needed to make a large scale non-periodic 2D field periodic over a limited-area domain, in order to apply discrete Fourier transforms. For this purpose, the original domain (called the ``physical zone'') is extended on two sides. This artificial "extension zone" has to be filled with adequate values to make the whole field periodic.\\
 $  $\\
 The work of \cite{blazica_2015} reviews existing methods, and can be quickly summarized as follows:
 \begin{itemize}
@@ -81,146 +86,129 @@ The work of \cite{blazica_2015} reviews existing methods, and can be quickly sum
 \item The discrete cosine transform method produces accurate spectra but increases the total domain size by a factor 4.
 \end{itemize}
 
-\section{The EMF method}
+In this note, we focus on methods that do not change the physical values (excluding the detrending approach), rely on the values within this physical zone only (excluding the Boyd method), and are computationally efficient (excluding the discrete cosine transform method). Thus, we try to find a better alternative to the extension methods of HIRLAM and ALADIN.
 
-The goal of this note is to design a method that:
+\subsection{In a simplified framework}
+
+Biperiodization methods can be designed and tested in an idealized 1D framework, as a "gap filling" problem. The goal is to define values in a missing segment with several objectives:
 \begin{itemize}
-\item produces smooth extension values without overshoots,
-\item does not require a modification of the physical values,
-\item can be computed from the physical values only,
-\item does not increase the total domain size too much.
-\end{itemize}
+\item ensuring the signal continuity, and if possible the continuity of its derivatives,
+\item avoiding overshoots, i.e. values significantly out of the range of the original values,
+\item keeping the signal scales to avoid spectrum distorsion.
+\end{itemize} 
 
-This new method is called ``EMF'' for ``Extension, Mixing, Folding''.\\
-$  $\\
-We start with an initial random smooth field defined in the physical zone (P). The goal is to define values in the extension zone (E), and to make this process easier we also fill the opposite extension zone (E').
+Figure \ref{fig:detail_init} shows a smooth random signal with missing data, which we will use for illustration purposes. The spline method is illustrated in figure \ref{fig:detail_spline}: while the signal continuity is good, an overshoot is clearly visible over the red bar and the signal is smoother in the filled area than outside of it.
 
-\begin{center}
-\includegraphics[width=0.7\textwidth]{base_init.pdf}
-\end{center}
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{detail_init.pdf}
+\caption{Smooth random signal with missing data}
+\label{fig:detail_init}
+\end{figure}
+\FloatBarrier
 
-\subsection{Extension}
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{detail_spline.pdf}
+\caption{Gap filled with the spline method (dashed black)}
+\label{fig:detail_spline}
+\end{figure}
+\FloatBarrier
 
-As in the discrete cosine transform method, it is possible to extend the initial field using a symmetry operation with respect to the (P) boundary:
+\section{The SEAM method}
 
-\begin{center}
-\includegraphics[width=0.7\textwidth]{base_extended_sym.pdf}
-\end{center}
+The SEAM method stands for ``Symmetric Extension And Mixing'', and will be described in this section.
 
-The values in (E) and (E') have the same amplitude as in (P), which is good, but the field derivative is discontinuous at the (P) boundary, which is not ideal.\\
-$  $\\
-Another possible way to extend the field is to use an anti-symmetric operation with respect to the (P) boundary:
+\subsection{Detailed steps}
 
-\begin{center}
-\includegraphics[width=0.7\textwidth]{base_extended_antisym.pdf}
-\end{center}
-
-In this case, the first two derivatives of the field are continuous at the (P) boundary, which is good, but the field shows significant overshoots in (E) and (E') further away from this boundary, which is not desired.
-
-\subsection{Mixing}
-To attenuate the respective drawbacks of the two previous extension methods, a simple linear combination might be sufficient. The weights of this combination should be:
+In this first step, the signal is extended in the gap based on both symmetric or an antisymmetric extensions from both sides of the gap. Figure \ref{fig:detail_mix_left} extensions starting from the left side of the gap:
 \begin{itemize}
-\item higher on the first field (symmetric) away from the boundary, to avoid overshoots,
-\item higher on the second field anti-symmetric) at the boundary, to keep continuous derivatives.
+\item for the symmetric extension (blue), overshoots are not possible but the signal derivative continuity at the boundary is lost,
+\item for the antisymmetric extension (red), overshoots are possible but the signal first two derivatives continuity at the boundary is maintained.
 \end{itemize}
+Thus, it seems relevant to stay close to the the antisymmetric extension at to the boundary, and then converge to the symmetric extension further away, as shown with the dashed gray curve in Figure \ref{fig:detail_mix_left}. 
 
-The \cite{boyd_2005} formula for a ramp going from 1 to 0 for an argument going from 0 to 1 can be expressed as:
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{detail_mix_left.pdf}
+\caption{Symmetric (blue), antisymmetric (red) and combined (dahed gray) extensions on the left side of the gap}
+\label{fig:detail_mix_left}
+\end{figure}
+\FloatBarrier
+
+The weights of symmetric and antisymmetric extensions in the linear combination are given by the \cite{boyd_2005} formula. It provides a ramp going from 1 to 0 for an argument going from 0 to 1:
 \begin{align}
-\mathcal{B}(x) = \frac{1}{2} \left(1+ \text{erf}\left(L\frac{1-2x}{\sqrt{4x(1-x)}}\right)\right)
+\mathcal{B}(x) = \frac{1}{2} \left(1+\text{erf}\left(L\frac{1-2x}{\sqrt{4x(1-x)}}\right)\right)
 \end{align}
-For values of $L$ between 1 and 3, the ramp looks like:
-\begin{center}
-\includegraphics[width=0.4\textwidth]{boyd.pdf}
-\end{center}
 
-The mixing mask with $L_\text{mix} = 1$ is:
+The shape of $\mathcal{B}(x)$ is given in Figure \ref{fig:boyd} for different values of $L$. In this study, we found that the actual value of $L$ is not very sensitive and we keep $L = 1.5$ hereafter.
 
-\begin{center}
-\includegraphics[width=0.7\textwidth]{base_mixing.pdf}
-\end{center}
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{boyd.pdf}
+\caption{Normalized \cite{boyd_2005} ramp functions for various values of the $L$ parameter}
+\label{fig:boyd}
+\end{figure}
+\FloatBarrier
 
-This mask is applied to the anti-symmetric extension, and its complementary to the symmetric extension. The mixed field resulting from this linear combination is:
+A more critical parameter is the width over which the linear combination is performed, starting from the boundary. Figure \ref{fig:detail_mix_wide_left} shows a case where this combination width is too large, leading to a significant overshoot. So we recommand a rather narrow combination width ($\sim$ 10 points), but large enough to ensure derivatives continuity at the boundary.
 
-\begin{center}
-\includegraphics[width=0.7\textwidth]{base_extended_mixed.pdf}
-\end{center}
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{detail_mix_wide_left.pdf}
+\caption{Same as figure \ref{fig:detail_mix_left} with a large combination width}
+\label{fig:detail_mix_wide_left}
+\end{figure}
+\FloatBarrier
 
-The continuity of the derivatives is preserved at the (P) boundary, while overshoots are kept at a managable amplitude.
+The same procedure is applied on the right side of the gap, as shown in Figure \ref{fig:detail_mix_right}.
 
-\subsection{Folding}
-In the final step, we apply the \cite{boyd_2005} folding method on this extended field, following two steps:
-\begin{itemize}
-\item applying the Boyd's mask on the extended field,
-\item folding the domain to make the (P+E) zone biperiodic.
-\end{itemize}
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{detail_mix_right.pdf}
+\caption{Symmetric (blue), antisymmetric (red) and combined (gray) extensions on the right side of the gap}
+\label{fig:detail_mix_right}
+\end{figure}
+\FloatBarrier
 
-The folding mask with $L_\text{fold} = 2$ looks like:
+In the final step, we apply the \cite{boyd_2005} method to combine the left side and right side extensions, as shown in Figure \ref{fig:detail_final}.
 
-\begin{center}
-\includegraphics[width=0.7\textwidth]{base_boyd.pdf}
-\end{center}
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{detail_final.pdf}
+\caption{Extensions on both sides of the gap (dashed gray) and final SEAM solution (dashed black)}
+\label{fig:detail_final}
+\end{figure}
+\FloatBarrier
 
-and the final result is:
+\subsection{2D implementation}
 
-\begin{center}
-\includegraphics[width=0.7\textwidth]{base_folded.pdf}
-\end{center}
-
-We can check that the (P+E) zone is now biperiodic, with continuous derivatives at the (P) boundary and limited overshoots in (E). The field in (P+E) has been built from the values of (P) only, without modifying them.
-
-\section{Impact of the extension zone size}
-With an extension zone twice narrower, the EMF method works fine and the final result is:
-
-\begin{center}
-\includegraphics[width=0.62\textwidth]{narrow_folded.pdf}
-\end{center}
-
-With and extension zone twice broader, larger overshoots produced by the anti-symmetric extension are expected:
-
-\begin{center}
-\includegraphics[width=0.9\textwidth]{broad_folded.pdf}
-\end{center}
-
-However, it is easy to adjust the mixing mask with a transition that is not in the middle of (E) and (E') but closer to the (P) boundary instead:
-
-\begin{center}
-\includegraphics[width=0.9\textwidth]{broad_adjusted_mixing.pdf}
-\end{center}
-
-leading to a final result with limited overshoots:
-
-\begin{center}
-\includegraphics[width=0.9\textwidth]{broad_adjusted_folded.pdf}
-\end{center}
-
-\section{Implementation}
-
-We denote $x$ the input values (from the (P) zone) and $y$ the intermediate and output values (in the (E) zone). The output value
+We denote $x$ the input value in the physical zone and $y$ the intermediate and output values in the extension zone. The output value
 \begin{align}
 y = \sum_{i=1}^n y_i
 \end{align}
-is the sum of several components $y_1, ..., y_n$ because of the folding procedure, with $n$ depending on the point location in (E):
+is the sum of several components $y_1, ..., y_n$ because of the last mixing step in two dimensions, with $n$ depending on the point location in the extension zone:
 \begin{itemize}
-\item right-top corner: $n=4$
 \item right side: $n=2$
 \item top side: $n=2$
+\item right-top corner: $n=4$
 \end{itemize}
 
 For each component $y_i$, we can define two input points:
 \begin{itemize}
-\item $x^\text{bnd}_i$: closest points on the (P) zone boundary,
+\item $x^\text{bnd}_i$: closest points on the physical zone boundary,
 \item $x^\text{sym}_i$: symmetric point with respect to $x^\text{bnd}_i$.
 \end{itemize}
 
-The symmetric extension and anti-symmetric values are respectively given by:
+The symmetric and antisymmetric extensions are respectively given by:
 \begin{align}
 y^\text{sym}_i & = x^\text{sym}_i \\
-y^\text{anti-sym}_i & = 2 x^\text{bnd}_i - x^\text{sym}_i
+y^\text{antisym}_i & = 2 x^\text{bnd}_i - x^\text{sym}_i
 \end{align}
 
-For each component, we denote $c^\text{mix}_i$ the local mixing mask and $c^\text{fold}_i$ the local folding mask. The final component value is given by:
+For each component, we denote $c^\text{ext}_i$ the local extension combination factor and $c^\text{mix}_i$ the local mixing factor. The final component value is given by:
 \begin{align}
-y_i = \left(c^\text{mix}_i y^\text{sym}_i + \left(1-c^\text{mix}_i\right) y^\text{anti-sym}_i \right) c^\text{fold}_i
+y_i = \left(c^\text{ext}_i y^\text{sym}_i + \left(1-c^\text{ext}_i\right) y^\text{antisym}_i \right) c^\text{mix}_i
 \end{align}
 which can be expressed as a linear combination of input values:
 \begin{align}
@@ -228,9 +216,53 @@ y_i = \alpha^\text{bnd}_i x^\text{bnd}_i + \alpha^\text{sym}_i x^\text{sym}_i
 \end{align}
 with the linear coefficients:
 \begin{align}
-\alpha^\text{bnd}_i & = 2 c^\text{mix}_i c^\text{fold}_i \\
-\alpha^\text{sym}_i & = \left(1 - 2 c^\text{mix}_i\right) c^\text{fold}_i
+\alpha^\text{bnd}_i & = 2 c^\text{ext}_i c^\text{mix}_i \\
+\alpha^\text{sym}_i & = \left(1 - 2 c^\text{ext}_i\right) c^\text{mix}_i
 \end{align}
+
+Figure \ref{fig:base_single} shows an exemple of a smooth random 2D field biperiodized with the SEAM method.
+
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{base_single.pdf}
+\caption{Smooth random 2D field biperiodized with the SEAM method, from the physical zone (P) to the extension zone (E)}
+\label{fig:base_single}
+\end{figure}
+\FloatBarrier
+
+\section{Real case tests}
+
+\subsection{Practical implementation in IAL}
+
+In the IAL code, the SEAM method is implemented in \texttt{biper/module/eseam\_mod.F90}. Like the spline or the Boyd methods, it can be called from \texttt{biper/external/fpbipere.F90}. To use the SEAM method from the \texttt{fpbipere} interface, the following optional arguments must be specified:
+\begin{itemize}
+\item \texttt{ldseam=.true.} to activate the SEAM method
+\item \texttt{kdseam} [integer], which contains the combination width
+\item \texttt{plseam} [real(2)], which contains the extension combination and mixing lengths for the \cite{boyd_2005} ramp function.
+\end{itemize}
+
+\subsection{Methods comparison}
+The spline method (with an additional smoothing of overshoots) and the SEAM method have been compared for a low level temperature field. Figure \ref{fig:biperFromIAL} shows that the SEAM method produces a field without overshoots, while keeping the continuity at the boundaries and maintaining the original signal scales. This last property can be confirmed with a variance spectrum computed using the \cite{denis_2002} method. In Figure \ref{fig:biperFromIAL_spectra_80_11}, the SEAM spectrum is closer to the original than the spline spectrum.
+
+\begin{figure}[!ht]
+\center
+\includegraphics[width=\textwidth]{biperFromIAL.jpg}
+\caption{Original non-periodic field (right), biperiodized with the spline+smooth method (center) or the SEAM method (left)}
+\label{fig:biperFromIAL}
+\end{figure}
+\FloatBarrier
+
+\begin{figure}[!ht]
+\center
+\includegraphics[width=0.7\textwidth]{biperFromIAL_spectra_80_11.jpg}
+\caption{Variance spectra of the fields of Figure \ref{fig:biperFromIAL}}
+\label{fig:biperFromIAL_spectra_80_11}
+\end{figure}
+\FloatBarrier
+
+\section{Conclusions}
+
+TBD
 
 \bibliographystyle{mybib-en}
 \bibliography{biperiodization}

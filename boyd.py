@@ -7,14 +7,16 @@ import os
 
 # Parameter
 n = 100
-x = np.linspace(0.01, 0.99, n)
+x = np.linspace(0.0, 1.0, n+2)
 
 # Boyd function
-L = [1, 2, 3]
-b = np.zeros((n, len(L)))
+L = [1, 1.5, 2, 2.5]
+b = np.zeros((n+2, len(L)))
 for l in range(0, len(L)):
+  b[0, l] = 1.0
   for i in range(0, n):
-    b[i, l] = 0.5*(1.0+math.erf(L[l]*(1.0-2.0*x[i])/np.sqrt(4.0*x[i]*(1.0-x[i]))))
+    b[i+1, l] = 0.5*(1.0+math.erf(L[l]*(1.0-2.0*x[i])/np.sqrt(4.0*x[i]*(1.0-x[i]))))
+  b[n+1, l] = 0.0
 
 # Legend
 leg = []
@@ -22,11 +24,13 @@ for l in range(0, len(L)):
   leg.append("L = " + str(L[l]))
 
 # Plot curves
-fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(4,3))
-ax.set_title('Boyd function')
-ax.plot(x, b, linewidth=2.0)
-ax.axvline(x=0, color="gray")
-ax.axhline(y=0, color="gray")
+colors = ["limegreen", "deepskyblue", "gold", "indianred"]
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,3))
+for l in range(0, len(L)):
+  ax.plot(x, b[:,l], linewidth=3.0, color=colors[l])
+ax.axhline(y=0, color="gray", linewidth=0.5)
+ax.axhline(y=1, color="gray", linewidth=0.5)
+ax.set_xlim(0.0, 1.0)
 plt.legend(leg)
 plt.savefig('boyd.pdf', format='pdf', dpi=300)
 plt.close()
