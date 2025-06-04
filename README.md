@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/935892110.svg)](https://doi.org/10.5281/zenodo.14898585)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15592713.svg)](https://doi.org/10.5281/zenodo.15592713)
 
 # Biperiodization
 Biperiodization: documentation for the SEAM method
